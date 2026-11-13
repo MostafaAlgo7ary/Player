@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل البث الاحترافي</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #0f0f13; color: #fff; text-align: center; padding: 20px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; background: #1e1e24; padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #bb86fc; margin-top: 0; }
+        input[type="text"] { width: 95%; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background-color: #2b2b36; color: #fff; font-size: 14px; direction: ltr; }
+        button { padding: 15px 40px; background-color: #03dac6; color: #000; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #018786; color: #fff; }
+        video { width: 100%; margin-top: 20px; background-color: #000; border-radius: 8px; min-height: 250px; outline: none; }
+        #status { margin-top: 15px; font-size: 14px; color: #ffb74d; min-height: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📺 مشغل البث الخاص بك</h2>
+        <p style="font-size: 12px; color: #888;">ضع رابط البث (الذي ينتهي بـ css أو m3u8) في المربع أدناه</p>
+        
+        <input type="text" id="videoUrl" placeholder="https://...">
+        <br>
+        <button onclick="playVideo()">▶️ تشغيل البث</button>
+        
+        <div id="status">جاهز للتشغيل...</div>
+        <video id="videoPlayer" controls playsinline></video>
+    </div>
+
+    <script>
+        // ⚠️⚠️ هام جداً: استبدل الرابط أدناه برابط منصة Render الخاص بك بعد النشر ⚠️⚠️
+        const PROXY_SERVER = 'https://YOUR-RENDER-URL.onrender.com/?url=';
+
+        function playVideo() {
+            const video = document.getElementById('videoPlayer');
+            const originalUrl = document.getElementById('videoUrl').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!originalUrl) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "الرجاء إدخال الرابط أولاً!";
+                return;
+            }
+
+            if (PROXY_SERVER.includes('YOUR-RENDER-URL')) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "الرجاء تعديل الكود ووضع رابط الوسيط (Render) الخاص بك أولاً!";
+                return;
+            }
+
+            statusDiv.style.color = "#ffb74d";
+            statusDiv.innerText = "جاري الاتصال بالسيرفر عبر الوسيط...";
+
+            // دمج رابط الوسيط مع رابط البث الأصلي
+            const finalUrl = PROXY_SERVER + encodeURIComponent(originalUrl);
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(finalUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    statusDiv.style.color = "#03dac6";
+                    statusDiv.innerText = "تم الاتصال! جاري التشغيل...";
+                    video.play().catch(e => {
+                        statusDiv.innerText = "اضغط على زر التشغيل في الفيديو.";
+                    });
+                });
+
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        statusDiv.style.color = "red";
+                        statusDiv.innerText = "فشل التشغيل: الرابط منتهي الصلاحية أو هناك مشكلة في الوسيط.";
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = finalUrl;
+                video.addEventListener('loadedmetadata', () => video.play());
+            } else {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "متصفحك لا يدعم تشغيل روابط m3u8.";
+            }
+        }
+    </script>
+</body>
+</html>
